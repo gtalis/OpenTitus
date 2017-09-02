@@ -32,6 +32,7 @@
 #include "SDL/SDL.h"
 #include "level.h"
 
+int check_joystick();
 int move_player(TITUS_level *level);
 TITUS_object *FORCE_POSE(TITUS_level *level);
 

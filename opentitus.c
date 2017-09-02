@@ -194,6 +194,8 @@ int init() {
 #endif
 */
 
+    check_joystick();
+
 	initaudio();
 
     initoriginal();

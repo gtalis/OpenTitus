@@ -35,6 +35,7 @@
 #include "backbuffer.h"
 #include "globals.h"
 #include "common.h"
+#include "keyboard.h"
 
 //Probably not the best way, but it works...
 #define HAVE_CONFIG_H 1
@@ -150,14 +151,18 @@ int viewimage(char * imagefile, int imageformat, int displayformat, int delay) {
                     return (-1);
                 }
 
-                if (event.type == SDL_KEYDOWN) {
+                if (event.type == SDL_KEYDOWN || event.type == SDL_JOYBUTTONDOWN) {
                     if (event.key.keysym.sym == SDLK_ESCAPE) {
                         SDL_FreeSurface(image);
                         SDL_FreeSurface(surface);
                         return (-1);
                     }
 
-                    if (event.key.keysym.sym == KEY_RETURN || event.key.keysym.sym == KEY_ENTER || event.key.keysym.sym == KEY_SPACE) {
+                    joy_button(event);
+                    joy_axis(event);
+
+                    if (event.key.keysym.sym == KEY_RETURN || event.key.keysym.sym == KEY_ENTER || event.key.keysym.sym == KEY_SPACE /*|| joy_button(event) == 0*/) {
+                        printf("T active delay = 0\n\n");
                         activedelay = 0;
                         fadeoutskip = 255 - image_alpha;
                     }
@@ -207,15 +212,17 @@ int viewimage(char * imagefile, int imageformat, int displayformat, int delay) {
                     return (-1);
                 }
 
-                if (event.type == SDL_KEYDOWN) {
+                if (event.type == SDL_KEYDOWN || event.type == SDL_JOYBUTTONDOWN) {
                     if (event.key.keysym.sym == SDLK_ESCAPE) {
                         SDL_FreeSurface(image);
                         SDL_FreeSurface(surface);
                         return (-1);
                     }
 
-                    if (event.key.keysym.sym == KEY_RETURN || event.key.keysym.sym == KEY_ENTER || event.key.keysym.sym == KEY_SPACE)
+                    if (event.key.keysym.sym == KEY_RETURN || event.key.keysym.sym == KEY_ENTER || event.key.keysym.sym == KEY_SPACE || joy_button(event) == 0) {
+                        printf("P active delay = 0\n\n");
                         activedelay = 0;
+                    }
 
 #ifdef AUDIO_ENABLED
                     if (event.key.keysym.sym == KEY_MUSIC) {

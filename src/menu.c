@@ -38,6 +38,7 @@
 #include "audio.h"
 #include "globals.h"
 #include "common.h"
+#include "keyboard.h"
 
 //Probably not the best way, but it works...
 #define HAVE_CONFIG_H 1
@@ -49,6 +50,7 @@
 #ifdef AUDIO_ENABLED
 #include "audio.h"
 #endif
+
 
 int viewmenu(char * menufile, int menuformat) {
     SDL_Surface *surface;
@@ -203,24 +205,35 @@ int viewmenu(char * menufile, int menuformat) {
     beforemenuloop:
 
     while (menuloop) { //View the menu
-
         if (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 SDL_FreeSurface(image);
                 return (-1);
             }
 
-            if (event.type == SDL_KEYDOWN) {
+            if (event.type == SDL_KEYDOWN || event.type == SDL_JOYBUTTONDOWN || event.type == SDL_JOYAXISMOTION) {
                 if (event.key.keysym.sym == SDLK_ESCAPE) {
                     SDL_FreeSurface(image);
                     return (-1);
                 }
-                if (event.key.keysym.sym == SDLK_UP)
+                if ((event.key.keysym.sym == SDLK_UP) || (joy_axis(event) == JOYUP)) {
+                //if (event.key.keysym.sym == SDLK_UP) {
+                    printf("selection = 0\n");
                     selection = 0;
-                if (event.key.keysym.sym == SDLK_DOWN)
+                }
+                if ((event.key.keysym.sym == SDLK_DOWN) || (joy_axis(event) == JOYDOWN)) {
+                //if (event.key.keysym.sym == SDLK_DOWN) {
+                    printf("selection = 1\n");
                     selection = 1;
-                if (event.key.keysym.sym == KEY_RETURN || event.key.keysym.sym == KEY_ENTER || event.key.keysym.sym == KEY_SPACE)
+                }
+                if (event.key.keysym.sym == KEY_RETURN 
+                    || event.key.keysym.sym == KEY_ENTER 
+                    || event.key.keysym.sym == KEY_SPACE
+                    || (joy_button(event) == 0)) {
+                        printf("menuloop = 0\n");
                     menuloop = 0;
+                }
+
 #ifdef AUDIO_ENABLED
                 if (event.key.keysym.sym == KEY_MUSIC) {
 					AUDIOMODE++;

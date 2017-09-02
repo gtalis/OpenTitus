@@ -38,6 +38,7 @@
 #include "original.h"
 #include "common.h"
 #include "settings.h"
+#include "keyboard.h"
 
 static int TAKE_BLK_AND_YTEST(TITUS_level *level, int16 tileY, uint8 tileX);
 static int BLOCK_YYPRGD(TITUS_level *level, uint8 ceil, uint8 tileY, uint8 tileX);
@@ -54,6 +55,48 @@ static int YACCELERATION_NEG(TITUS_player *player, int16 maxspeed);
 static int ACTION_PRG(TITUS_level *level, uint8 action);
 int16 add_carry();
 
+int check_joystick()
+{
+    int ret;
+    SDL_Joystick* joy;
+
+    // Initialize the joystick subsystem
+    SDL_InitSubSystem(SDL_INIT_JOYSTICK);
+    if (ret < 0) {
+        printf("Failed to init joystick!\n");
+        return -1;
+    }
+
+    //SDL_JoystickEventState(SDL_ENABLE);
+    if (SDL_NumJoysticks() > 0) {
+        printf("Opening joystick\n");
+        joy = SDL_JoystickOpen(0);
+        //if (!SDL_IsGameController(0)) {
+        //    printf( "Not a game controller");
+        //}
+    }
+
+    if (joy) {
+        printf("Opened Joystick 0\n");
+        //printf("Name: %s\n", SDL_JoystickNameForIndex(0));
+        printf("Number of Axes: %d\n", SDL_JoystickNumAxes(joy));
+        printf("Number of Buttons: %d\n", SDL_JoystickNumButtons(joy));
+        printf("Number of Balls: %d\n", SDL_JoystickNumBalls(joy));
+    } else {
+        printf("Couldn't open Joystick 0\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+static int JLEFT = 0;
+static int JRIGHT = 0;
+static int JUP = 0;
+static int JDOWN = 0;
+static int JJUMP = 0;
+static int JACTION = 0;
+
 int move_player(TITUS_level *level) {
     //Part 1: Check keyboard input
     //Part 2: Determine the player's action, and execute action dependent code
@@ -67,63 +110,28 @@ int move_player(TITUS_level *level) {
     TITUS_player *player = &(level->player);
     int16 newX, newY;
     bool pause = false;
+    int jaxis;
+    int jbutton;
+
+    int LEFT_FLAG = 0;
+    int RIGHT_FLAG = 0;
+    int UP_FLAG = 0;
+    int DOWN_FLAG = 0;
+    int JUMP_FLAG = 0;
+    int SPACE_FLAG = 0;
+
+    int jjump = 0;
     
     //Part 1: Check keyboard input
     SDL_PumpEvents(); //Update keyboard state
     keystate = SDL_GetKeyState(NULL);
 
     while(SDL_PollEvent(&event)) { //Check all events
+
         if (event.type == SDL_QUIT) {
             return TITUS_ERROR_QUIT;
-        } else if (event.type == SDL_KEYDOWN) {
-#ifdef _DINGUX
-            if (event.key.keysym.sym == KEY_CHEAT && (devmode == 1)) {
-                if (keystate[KEY_SKIPLEVEL]) {
-                    NEWLEVEL_FLAG = true;
-                } else if (!GODMODE && !NOCLIP) {
-                    GODMODE = true;
-                    NOCLIP = false;
-                } else if (GODMODE && !NOCLIP) {
-                    GODMODE = true;
-                    NOCLIP = true;
-                } else {
-                    GODMODE = false;
-                    NOCLIP = false;
-                }
-            } else if (event.key.keysym.sym == KEY_STATUS) {
-                if (BAR_FLAG == 0) {
-                    BAR_FLAG = 50; //Display energy
-                } else {
-                    viewstatus(level, false); //View status screen
-                }
-            } else if ((event.key.keysym.sym == KEY_F1) && (devmode == 0) && (RESETLEVEL_FLAG == 0)) {
-                CASE_DEAD_IM(level);
-                RESETLEVEL_FLAG--;
-                return;
-#ifdef DEBUG_VERSION
-//Will display debug information
-            } else if (event.key.keysym.sym == KEY_MUSIC) {
-                DISPLAYLOOPTIME = !DISPLAYLOOPTIME;
-				if (!DISPLAYLOOPTIME) {
-					AUDIOMODE++;
-					if (AUDIOMODE > 1) {
-						AUDIOMODE = 0;
-					}
-					if (AUDIOMODE == 1) {
-						startmusic();
-					}
-				}
-#else //DEBUG_VERSION
-            } else if (event.key.keysym.sym == KEY_MUSIC) {
-                AUDIOMODE++;
-                if (AUDIOMODE > 1) {
-                    AUDIOMODE = 0;
-                }
-				if (AUDIOMODE == 1) {
-					startmusic();
-				}
-#endif //DEBUG_VERSION
-#else //_DINGUX
+        }  else if (event.type == SDL_KEYDOWN  || event.type == SDL_JOYBUTTONDOWN || event.type == SDL_JOYBUTTONUP || event.type == SDL_JOYAXISMOTION) {
+
             if ((event.key.keysym.sym == KEY_GODMODE) && (devmode == 1)) {
                 if (GODMODE) {
                     GODMODE = false;
@@ -146,35 +154,19 @@ int move_player(TITUS_level *level) {
 				if (AUDIOMODE == 1) {
 					startmusic();
 				}
-#ifdef DEBUG_VERSION
-//Will display debug information
-            } else if (event.key.keysym.sym == KEY_DEBUG) {
-                DISPLAYLOOPTIME = !DISPLAYLOOPTIME;
-#endif //DEBUG_VERSION
-#endif //_DINGUX
-
 
             } else if (event.key.keysym.sym == KEY_P) {
                 pause = true;
             }
         } else if (event.type == SDL_KEYUP) {
-#ifdef _DINGUX
-            if ((event.key.keysym.sym == KEY_F1) && (devmode == 1) && !keystate[KEY_CHEAT] && (RESETLEVEL_FLAG == 0)) {
-                CASE_DEAD_IM(level);
-                RESETLEVEL_FLAG--;
-                return;
-            }
-#endif //_DINGUX
-
-
+            printf("=====> new event (KU)\n"); 
         }
     }
     if (keystate[KEY_ESC]) {
         return TITUS_ERROR_QUIT;
     }
-#ifdef _DINGUX
 
-#else
+
     if (keystate[KEY_F1] && (RESETLEVEL_FLAG == 0)) { //F1 = suicide
         CASE_DEAD_IM(level);
         RESETLEVEL_FLAG--;
@@ -193,7 +185,7 @@ int move_player(TITUS_level *level) {
     if (keystate[KEY_F4]) { //F4 = view status page
         viewstatus(level, false);
     }
-#endif
+
 // TODO: ADD!    SCREEN_3(); //Test for hidden credits screen
     if (pause) {
         retval = t_pause(level); //Apply pause
@@ -203,21 +195,92 @@ int move_player(TITUS_level *level) {
     }
     //JOYSTICK(); //Handle both joystick and keyboard movement keys
 
+    //printf("%d %d\n", joy_axis(event), joy_button(event));
+
+    if (event.type == SDL_JOYAXISMOTION)
+    {
+        if (event.jaxis.axis == 0)
+        {
+            if (event.jaxis.value <= -32768) {
+                JLEFT = 1;
+            }
+
+            else if (event.jaxis.value >= 32767){
+                JRIGHT = 1;
+            } else if (event.jaxis.value == 0) {
+                JLEFT = JRIGHT = 0;
+            }
+        }
+        else if (event.jaxis.axis == 1)
+        {
+            if (event.jaxis.value <= -32768) {
+                // UP
+                JUP = 1;
+            }
+
+            else if (event.jaxis.value >= 32767){
+                JDOWN = 1;
+            }
+             else if (event.jaxis.value == 0) {
+                JDOWN = 0;
+                JUP = 0;
+            }
+        }
+    }
+
+
+    if (event.type == SDL_JOYBUTTONDOWN)
+    {
+        printf("===> button DOWN %d, state %d\n", event.jbutton.button, event.jbutton.state);
+        if ((event.jbutton.button == 0) && (event.jbutton.state == 1))
+            JJUMP = 1;
+
+        if ((event.jbutton.button == 2) && (event.jbutton.state == 1))
+            JACTION = 1;
+    }
+
+    if (event.type == SDL_JOYBUTTONUP)
+    {
+        printf("===> button UP %d, state %d\n", event.jbutton.button, event.jbutton.state);
+        if ((event.jbutton.button == 0) && (event.jbutton.state == 0))
+            JJUMP = 0;
+
+        if ((event.jbutton.button == 2) && (event.jbutton.state == 0))
+           JACTION = 0;
+    }
+
+    //joystate = getJoyState();
 
     //Part 2: Determine the player's action, and execute action dependent code
-    X_FLAG = keystate[KEY_LEFT] | keystate[KEY_RIGHT]; //Set if either is true
-    Y_FLAG = keystate[KEY_UP] | keystate[KEY_JUMP] | keystate[KEY_DOWN]; //Set if either is true
+    //LEFT_FLAG = joystate[JOY_LEFT];
+    LEFT_FLAG = keystate[KEY_LEFT];
+    LEFT_FLAG |= JLEFT;
+    RIGHT_FLAG = keystate[KEY_RIGHT];
+    RIGHT_FLAG |= JRIGHT;
+    UP_FLAG = keystate[KEY_UP];
+    UP_FLAG |= JUP;
+    DOWN_FLAG = keystate[KEY_DOWN];
+    DOWN_FLAG |= JDOWN;
+    JUMP_FLAG = keystate[KEY_JUMP];
+    JUMP_FLAG |= JJUMP;
+    X_FLAG = LEFT_FLAG | RIGHT_FLAG; //Set if either is true
+    Y_FLAG = UP_FLAG | JUMP_FLAG | DOWN_FLAG; //Set if either is true
+    SPACE_FLAG = keystate[KEY_SPACE];
+    SPACE_FLAG |= JACTION;
+
+
     if (NOCLIP) {
-        if (keystate[KEY_LEFT]) {
+        printf("NOCLIP");
+        if (LEFT_FLAG) {
             player->sprite.speedX = -100;
-        } else if (keystate[KEY_RIGHT]) {
+        } else if (RIGHT_FLAG) {
             player->sprite.speedX = 100;
         } else {
             player->sprite.speedX = 0;
         }
-        if (keystate[KEY_UP] || keystate[KEY_JUMP]) {
+        if (UP_FLAG || JUMP_FLAG) {
             player->sprite.speedY = -100;
-        } else if (keystate[KEY_DOWN]) {
+        } else if (DOWN_FLAG) {
             player->sprite.speedY = 100;
         } else {
             player->sprite.speedY = 0;
@@ -228,8 +291,10 @@ int move_player(TITUS_level *level) {
     }
 
     if (CHOC_FLAG != 0) {
+        printf("CHOC");
         action = 11; //Headache
     } else if (KICK_FLAG != 0) {
+        printf("KICK");
         if (GRANDBRULE_FLAG) {
             action = 13; //Hit (burn)
         } else {
@@ -238,13 +303,15 @@ int move_player(TITUS_level *level) {
     } else {
         GRANDBRULE_FLAG = false;
         if (LADDER_FLAG) {
+            printf("LADDER ");
             action = 6; //Action: climb
-        } else if (!PRIER_FLAG && (keystate[KEY_UP] || keystate[KEY_JUMP]) && (SAUT_FLAG == 0)) {
+        } else if (!PRIER_FLAG && (UP_FLAG || JUMP_FLAG) && (SAUT_FLAG == 0)) {
+            printf("JUMP ");
             action = 2; //Action: jump
             if (LAST_ORDER == 5) { //Test if last order was kneestanding
                 FURTIF_FLAG = 100; //If jump after kneestanding, init silent walk timer
             }
-        } else if (PRIER_FLAG || ((SAUT_FLAG != 6) && keystate[KEY_DOWN])) {
+        } else if (PRIER_FLAG || ((SAUT_FLAG != 6) && DOWN_FLAG)) {
             if (X_FLAG) { //Move left or right
                 action = 3; //Action: crawling
             } else {
@@ -256,16 +323,22 @@ int move_player(TITUS_level *level) {
             action = 0;  //Action: rest (no action)
         }
         //Is space button pressed?
-        if (keystate[KEY_SPACE] && !PRIER_FLAG) {
+        if (SPACE_FLAG && !PRIER_FLAG) {
+            printf("DROP FLAG(%d) CARRY_FLAG(%d) DROPREADY_FLAG(%d)\n",
+                    DROP_FLAG, CARRY_FLAG, DROPREADY_FLAG);
             if (!DROP_FLAG) {
                 if ((action == 3) || (action == 5)) { //Kneestand
                     DROPREADY_FLAG = false;
                     action = 7; //Grab an object
+                    printf("GRAB\n");
                 } else if (CARRY_FLAG && DROPREADY_FLAG) { //Fall
                     action = 8; //Drop the object
+                    printf("DROP\n");
                 }
             }
         } else {
+            if (DROPREADY_FLAG == false)
+                printf("DROPREADY_FLAG = true\n");
             DROPREADY_FLAG = true;
             POSEREADY_FLAG = false;
         }
@@ -280,9 +353,9 @@ int move_player(TITUS_level *level) {
         } else { // 0 or 1
             newsensX = 0;
         }
-    } else if (keystate[KEY_LEFT]) {
+    } else if (LEFT_FLAG) {
         newsensX = -1;
-    } else if (keystate[KEY_RIGHT]) {
+    } else if (RIGHT_FLAG) {
         newsensX = 1;
     } else if (SENSX == -1) {
         newsensX = -1;
@@ -1221,6 +1294,7 @@ static int ACTION_PRG(TITUS_level *level, uint8 action) {
                         copysprite(level, &(player->sprite2), &(level->object[i].sprite));
                         level->object[i].sprite.enabled = false;
                         CARRY_FLAG = true;
+                        printf("CARRY_FLAG = true\n");
                         SEECHOC_FLAG = 0;
                         if (player->sprite2.number == FIRST_OBJET+19) { //flying carpet
                             TAPISWAIT_FLAG = 0;

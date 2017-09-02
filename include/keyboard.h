@@ -31,5 +31,26 @@
 
 int waitforbutton();
 
+enum {
+    JOYUP,
+    JOYDOWN,
+    JOYLEFT,
+    JOYRIGHT,
+    JOY_BUTTON_A,
+    JOY_BUTTON_B,
+    JOY_BUTTON_X,
+    JOY_BUTTON_Y,
+    JOY_BUTTON_START,
+    JOY_BUTTON_SELECT,
+};
+
+int joy_axis(SDL_Event event);
+int joy_button(SDL_Event event);
+
+
+uint8_t *getJoyState(void);
+int updateJoyState(SDL_Event event);
+void initJoyState(void);
+
 #endif
 

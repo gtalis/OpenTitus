@@ -325,6 +325,7 @@ static int playlevel(TITUS_level *level) {
     int retval = 0;
     SDL_Event event;
     bool firstrun = true;
+
     do {
         if (!firstrun) {
             DISPLAY_COUNT(level); //Draw energy to the backbuffer

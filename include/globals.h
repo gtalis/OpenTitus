@@ -176,6 +176,7 @@ uint8 CROSS_FLAG; //When non-zero, fall through certain floors (after key down)
 uint8 GRAVITY_FLAG; //When zero, skip object gravity function
 uint8 FUME_FLAG; //Smoke when object hits the floor
 Uint8 *keystate; //Keyboard state
+Uint8 *joystate; // Joystick axis state
 uint8 LIFE; //Lives
 uint8 YFALL;
 bool POCKET_FLAG;
