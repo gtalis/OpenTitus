@@ -97,6 +97,14 @@ static int JDOWN = 0;
 static int JJUMP = 0;
 static int JACTION = 0;
 
+static int LEFT_FLAG = 0;
+static int RIGHT_FLAG = 0;
+static int UP_FLAG = 0;
+static int DOWN_FLAG = 0;
+static int JUMP_FLAG = 0;
+static int SPACE_FLAG = 0;
+
+
 int move_player(TITUS_level *level) {
     //Part 1: Check keyboard input
     //Part 2: Determine the player's action, and execute action dependent code
@@ -113,14 +121,15 @@ int move_player(TITUS_level *level) {
     int jaxis;
     int jbutton;
 
-    int LEFT_FLAG = 0;
-    int RIGHT_FLAG = 0;
-    int UP_FLAG = 0;
-    int DOWN_FLAG = 0;
-    int JUMP_FLAG = 0;
-    int SPACE_FLAG = 0;
-
     int jjump = 0;
+
+    LEFT_FLAG = 0;
+    RIGHT_FLAG = 0;
+    UP_FLAG = 0;
+    DOWN_FLAG = 0;
+    JUMP_FLAG = 0;
+    SPACE_FLAG = 0;
+
     
     //Part 1: Check keyboard input
     SDL_PumpEvents(); //Update keyboard state
@@ -158,14 +167,11 @@ int move_player(TITUS_level *level) {
             } else if (event.key.keysym.sym == KEY_P) {
                 pause = true;
             }
-        } else if (event.type == SDL_KEYUP) {
-            printf("=====> new event (KU)\n"); 
         }
     }
     if (keystate[KEY_ESC]) {
         return TITUS_ERROR_QUIT;
     }
-
 
     if (keystate[KEY_F1] && (RESETLEVEL_FLAG == 0)) { //F1 = suicide
         CASE_DEAD_IM(level);
@@ -945,6 +951,7 @@ static int BLOCK_YYPRG(TITUS_level *level, uint8 floor, uint8 floor_above, uint8
                 return;
             }
             if ((keystate[KEY_UP] || keystate[KEY_JUMP]) && (order == 6)) { //action UP + climb ladder
+                printf("CLIMB LADDER\n");
                 ARAB_BLOCK_YU(player); //Stop fall
                 return;
             }
@@ -1190,7 +1197,7 @@ static int ACTION_PRG(TITUS_level *level, uint8 action) {
                     player->sprite.x += 16;
                 }
             }
-            if (!keystate[KEY_UP] && !keystate[KEY_JUMP]) {
+            if (!UP_FLAG && !JUMP_FLAG) {
                 player->sprite.speedY = 4 * 16;
             } else {
                 player->sprite.speedY = 0 - (4 * 16);
@@ -1708,6 +1715,7 @@ COLLISION_OBJET(TITUS_level *level) {
             player->sprite.speedY = 0;
         } else {
             if (keystate[KEY_UP] || keystate[KEY_JUMP]) {
+                printf("INCREASE SPEED\n");
                 player->sprite.speedY += 16 * 3; //increase speed
             } else {
                 player->sprite.speedY -= 16; //reduce speed
