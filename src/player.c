@@ -58,7 +58,8 @@ int16 add_carry();
 int check_joystick()
 {
     int ret;
-    SDL_Joystick* joy;
+    int numJoysticks = 0;
+    SDL_Joystick* joy = NULL;
 
     // Initialize the joystick subsystem
     SDL_InitSubSystem(SDL_INIT_JOYSTICK);
@@ -67,18 +68,17 @@ int check_joystick()
         return -1;
     }
 
-    //SDL_JoystickEventState(SDL_ENABLE);
-    if (SDL_NumJoysticks() > 0) {
-        printf("Opening joystick\n");
-        joy = SDL_JoystickOpen(0);
-        //if (!SDL_IsGameController(0)) {
-        //    printf( "Not a game controller");
-        //}
-    }
+    numJoysticks = SDL_NumJoysticks();
+    if (numJoysticks <= 0)
+        return -1;
+
+    printf("Found %d joysticks\n", numJoysticks);
+
+    printf("Opening joystick 0\n");
+    joy = SDL_JoystickOpen(0);
 
     if (joy) {
         printf("Opened Joystick 0\n");
-        //printf("Name: %s\n", SDL_JoystickNameForIndex(0));
         printf("Number of Axes: %d\n", SDL_JoystickNumAxes(joy));
         printf("Number of Buttons: %d\n", SDL_JoystickNumButtons(joy));
         printf("Number of Balls: %d\n", SDL_JoystickNumBalls(joy));
